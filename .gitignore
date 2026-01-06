@@ -1,0 +1,12 @@
+# Entorno Virtual
+venv/
+__pycache__/
+*.pyc
+
+# Secretos y Configuración
+.env
+metadata_export.json
+
+# IDEs
+.vscode/
+.idea/
