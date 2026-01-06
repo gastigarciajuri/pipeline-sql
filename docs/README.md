@@ -1,39 +1,25 @@
-# Metadata Pipeline for Content Server (Experimental LAB)
+# Metadata Pipeline for Content Server (Universal Architecture)
 
-Este proyecto es un pipeline modular desarrollado en Python para la extracción, transformación y exportación de metadatos desde un entorno experimental de Content Server hacia un formato JSON consumible por procesos de IA/RAG.
+Pipeline modular en Python diseñado para la extracción, transformación y exportación de metadatos desde un entorno de Gestión de Contenido Empresarial (ECM) hacia estructuras JSON optimizadas para arquitecturas de IA (RAG).
 
 ## 🛠 Arquitectura del Sistema
+El pipeline utiliza componentes desacoplados para facilitar la migración entre entornos:
+1. **`config.py`**: Gestión de variables de entorno (usar `.env` localmente).
+2. **`database_manager.py`**: Capa de persistencia con `SQLAlchemy` y `pyodbc`.
+3. **`metadata_service.py`**: Lógica de extracción, filtrado de versiones y serialización.
+4. **`main.py`**: Orquestador del flujo de datos.
 
-El pipeline se divide en componentes desacoplados para garantizar mantenibilidad y escalabilidad:
+## 📊 Diccionario de Entidades (Esquema General)
+Durante el desarrollo se identificaron las siguientes entidades críticas:
 
-1.  **`config.py`**: Gestión de entorno y carga de variables mediante `python-dotenv`.
-2.  **`database_manager.py`**: Orquestador de la capa de datos. Utiliza `SQLAlchemy` para la gestión del ciclo de vida de la conexión y `pyodbc` como driver de bajo nivel.
-3.  **`metadata_service.py`**: Capa de lógica de negocio. Contiene la inteligencia de las consultas SQL y la lógica de serialización a JSON.
-4.  **`main.py`**: Punto de entrada (Entry Point) que orquesta el flujo completo.
-
-## 📊 Diccionario de Datos (LAB Schema)
-
-Durante la fase de experimentación, se identificaron las siguientes entidades críticas en la base de datos:
-
-| Tabla | Función | Columnas Clave |
+| Entidad | Propósito | Columnas Clave |
 | :--- | :--- | :--- |
-| `DTreeCore` | Almacén de nodos del sistema. | `DataID` (PK), `Name`, `ModifyDate`, `SubType` |
-| `DVersData` | Detalle técnico de archivos. | `DocID` (FK), `DataSize` |
-| `DTreeACL` | Matriz de permisos (ACL). | `DataID` (FK), `RightID`, `See` |
+| Nodos | Árbol principal de objetos. | `DataID`, `Name`, `ModifyDate`, `SubType` |
+| Versiones | Datos técnicos de archivos. | `DocID`, `Version`, `DataSize` |
+| Seguridad | Matriz de permisos (ACL). | `DataID`, `RightID`, `AccessLevel` |
 
-## 🚀 Instalación y Uso
-
-1. Configurar el archivo `.env` con las credenciales del entorno.
-2. Asegurar la disponibilidad del driver `ODBC SQL Server Driver`.
-3. Ejecutar el pipeline:
-   ```bash
-   python main.py
-
-
-| Entidad    | Tabla en el Servidor (LAB) | Relación Clave                                      |
-|-----------|----------------------------|----------------------------------------------------|
-| Objetos   | DTreeCore                  | Base de todo el árbol de documentos.               |
-| Versiones | DVersData                  | DocID + Version para la versión activa.            |
-| ACL       | DTreeACL                   | DataID para obtener los SecurityTokens.            |
-| EFS       | ProviderData               | providerID para la ruta física del archivo.        |
-| Usuarios  | KUAFChildren               | ChildID para validar membresías a grupos.          |
+## 🚀 Instalación
+1. Clonar el repositorio.
+2. Configurar el archivo `.env` siguiendo la plantilla `example.env` (sin subir credenciales reales).
+3. Asegurar la disponibilidad del driver `ODBC SQL Server Driver`.
+4. Ejecutar: `python main.py`

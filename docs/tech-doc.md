@@ -1,124 +1,51 @@
-# Resumen para una futura implementacion
+# Resumen para Implementación en Producción
 
-## Dejaremos establecidos los nombres de tablas correctos.
+Este documento establece los mapeos de tablas y relaciones validadas durante la fase de ingeniería inversa en el entorno de pruebas.
 
-# 📋 Diccionario de Tablas y Nombres Reales 
-###### A continuación, se detallan los nombres estándar según la documentación y los nombres reales que descubrimos en tu servidor:
+## 📋 Diccionario de Tablas Reales
+Debido a la sensibilidad de capitalización (*case-sensitivity*) en el servidor, se deben usar estos nombres literales:
 
-| Proposito tecnico          | Nombre Estándar  | Nombre Real en LAB    |
-| -----------------          |:---------------: | ---------------:      |
-| Nucleo de objetos          | DTree            | DTreeCore             |
-| Datos de Versiones         | DVersData        | DVersData             |
-| Control de Acceso (ACL)    | DTreeACL         | DTreeACL              |
-| Relacion de Usuarios/Grupo | KUAFCHILDREN     | KUAFChildren          |
-| Informacion de Usuarios    | KUAF             | KUAF                  |
-| Almacenamiento Físico      | ProviderData     | ProviderData          |
+| Propósito Técnico | Nombre Estándar | Nombre en Servidor Actual |
+| :--- | :--- | :--- |
+| Núcleo de objetos | `DTree` | `DTreeCore` |
+| Datos de Versiones | `DVersData` | `DVersData` |
+| Control de Acceso | `DTreeACL` | `DTreeACL` |
+| Relación Usuario/Grupo | `KUAFCHILDREN` | `KUAFChildren` |
+| Almacenamiento Físico | `ProviderData` | `ProviderData` |
 
+## 🔗 Mapa de Relaciones (JOINs)
 
+### 📄 Documento -> Versión Activa
+Garantiza la extracción exclusiva del archivo más reciente:
+`DTreeCore.DataID = DVersData.DocID AND DTreeCore.VersionNum = DVersData.Version`
 
+### 💾 Versión -> Almacenamiento Físico (EFS)
+*Importante:* Se detectó capitalización asimétrica en las claves:
+`DVersData.ProviderId = ProviderData.providerID` (Nótese 'd' minúscula vs 'ID' mayúscula).
 
-# 🔗 Mapa de Relaciones para el Pipeline
-
-## 📌 Objetivo
-Para reconstruir la información completa del documento hacia la **base de datos vectorial**, se detallan a continuación las **uniones (JOINs) exactas validadas** y las reglas asociadas para una futura implementación.
-
----
-
-## 🔄 Relaciones Validadas (JOINs)
-
-### 📄 De Documento a Versión Activa
-
-```sql
-DTreeCore.DataID = DVersData.DocID
-DTreeCore.VersionNum = DVersData.Version
-````
-
-**Nota:**
-Esta relación asegura que solo se extraiga el **archivo más reciente** del documento.
+### 🔐 Documento -> Seguridad (Tokens)
+`DTreeCore.DataID = DTreeACL.DataID`
 
 ---
 
-### 💾 De Versión a Almacenamiento Físico (EFS)
+## 📝 Nota de Seguridad para el Motor de IA
 
-```sql
-DVersData.ProviderId = ProviderData.providerID
-```
+### Estructura de `SecurityTokens`
+Cada documento exportado contiene una lista de IDs autorizados.
 
-**Importante (LAB):**
-Se detectó sensibilidad a mayúsculas y minúsculas:
+1. **Identificadores (RightID):**
+   - **Valores > 0:** IDs de Usuarios o Grupos específicos (ej: `GRP_101`, `USR_500`).
+   - [cite_start]**Valores Negativos:** Roles globales (ej: `-1` para Acceso Público, `-2` para Administradores). [cite: 81, 142]
 
-* `ProviderId` → con **d minúscula** en `DVersData`
-* `providerID` → con **ID mayúscula** en `ProviderData`
+2. [cite_start]**Niveles de Acceso (Basado en columna `See`):** [cite: 81, 143]
 
----
+| Valor | Nivel | Acción Permitida para la IA |
+| :--- | :--- | :--- |
+| 1 | See | [cite_start]**Solo existencia.** No indexar contenido. [cite: 81, 143] |
+| 2 | See Contents | [cite_start]**Lectura autorizada.** Nivel ideal para RAG. [cite: 81, 143] |
+| 3 | Modify | [cite_start]**Edición.** Nivel seguro para lectura. [cite: 81, 143] |
+| 4 | Delete | [cite_start]**Control Total.** [cite: 81, 144] |
 
-### 🔐 De Documento a Seguridad (Tokens)
-
-```sql
-DTreeCore.DataID = DTree
-```
-
-
-
-
-## 📝 Nota de Seguridad RAG
-
-## Estructura de `SecurityInfo`
-
-Cada documento en el JSON contiene una lista de objetos de seguridad con tres componentes clave.
-
----
-
-## 1. ID (Identificador de Sujeto)
-
-Representa la entidad a la cual se le ha otorgado el permiso.
-
-- **Valores Positivos (> 0):**  
-  Corresponden al `ID` único de un **Usuario** (identidad individual) o un **Grupo** (departamento, equipo) en el sistema.
-
-- **Valores Negativos:**  
-  Roles estructurales del sistema:
-  - **-1 / -3:** **Public Access**  
-    Indica que cualquier usuario autenticado en el banco puede acceder al archivo.
-  - **-2 / -4:** **Administradores**  
-    Usuarios con privilegios globales de sistema.
-
----
-
-## 2. Type (Tipo de Sujeto)
-
-Define la naturaleza del ID para determinar qué tabla de validación debe consultarse.
-
-- **User:**  
-  El permiso fue asignado directamente a una persona (por ejemplo, el dueño del archivo).
-
-- **Group:**  
-  El acceso se hereda por pertenencia a un grupo funcional.
-
-- **Public / Admin:**  
-  Roles especiales que no requieren validación de membresía grupal específica para el acceso general.
-
----
-
-## 3. AccessLevel (Nivel de Acceso)
-
-Valor entero extraído de la columna `See` de la base de datos que determina las capacidades del sujeto sobre el archivo.
-
-| Valor | Nivel | Descripción para el RAG |
-| --- | --- | --- |
-| **1** | **See** | **Mínimo:** El usuario sabe que el archivo existe, pero la IA **no** debe leer su contenido. |
-| **2** | **See Contents** | **Ideal:** Permite que la IA extraiga texto del archivo para generar respuestas. |
-| **3** | **Modify** | **Intermedio:** Incluye lectura y capacidad de edición de metadatos. |
-| **4** | **Delete** | **Máximo:** Control total sobre el ciclo de vida del documento. |
-
----
-
-## Lógica de Validación para la IA
-
-Para validar si un usuario puede realizar una consulta sobre un documento, el motor de búsqueda debe:
-
-1. Obtener el `UserID` del consultante y sus `GroupIDs` desde la tabla `KUAFChildren`.
-2. Verificar si alguno de esos IDs (o el token `-1`) existe en la lista `SecurityInfo`.
-3. Confirmar que el `AccessLevel` asociado a ese ID sea **2 o superior**.
-
-
+### 🔑 Lógica de Validación (Capa de Aplicación)
+Se recomienda que la IA obtenga las "llaves" del usuario (membresías de grupo) una sola vez por sesión desde la tabla `KUAFChildren`.
+- [cite_start]**Match de Seguridad:** El acceso se concede si el `UserID` o sus `GroupIDs` están presentes en los tokens del documento con un nivel de acceso **>= 2**. [cite: 81]
