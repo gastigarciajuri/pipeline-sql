@@ -120,5 +120,5 @@ Para validar si un usuario puede realizar una consulta sobre un documento, el mo
 1. Obtener el `UserID` del consultante y sus `GroupIDs` desde la tabla `KUAFChildren`.
 2. Verificar si alguno de esos IDs (o el token `-1`) existe en la lista `SecurityInfo`.
 3. Confirmar que el `AccessLevel` asociado a ese ID sea **2 o superior**.
-```
+
 
