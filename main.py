@@ -11,12 +11,18 @@ def run_pipeline():
     db = DatabaseManager(DB_CONFIG)
     service = MetadataService(db)
     
-    # 2. Extraer datos
-    data = service.get_recent_documents(PIPELINE_SETTINGS['days_back'])
+    # 2. Obtener documentos incrementales
+    data, new_timestamp = service.get_incremental_documents()
     
     # 3. Guardar resultados
     if data:
+        # Intentamos guardar el archivo
         service.save_to_json(data, PIPELINE_SETTINGS['output_file'])
+        
+        # SOLO SI EL GUARDADO FUE EXITOSO, actualizamos el checkpoint
+        if new_timestamp:
+            service.update_checkpoint(new_timestamp)
+            
         print(f"✅ Pipeline finalizado. {len(data)} archivos listos para procesar.")
     else:
         print("⚠️ No se encontraron archivos nuevos.")
