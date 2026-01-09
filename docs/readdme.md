@@ -1,4 +1,3 @@
-```markdown
 # Informe de Ingeniería Inversa y Diseño de Pipeline: Content Server
 
 ## 1. Contexto y Objetivos
