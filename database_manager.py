@@ -11,14 +11,12 @@ class DatabaseManager:
         self.engine = self._create_engine()
 
     def _create_engine(self):
-        # Aseguramos que los valores no sean None antes de seguir
         server = self.config.get('server')
         db = self.config.get('database')
         user = self.config.get('user')
         pwd = self.config.get('password')
         driver = self.config.get('driver')
 
-        # Si alguno es None, es que el .env no se leyó bien
         if not all([server, db, user, pwd, driver]):
             logger.error("❌ ERROR: Una o más variables en el .env no fueron encontradas.")
 
@@ -36,13 +34,11 @@ class DatabaseManager:
         return create_engine("mssql+pyodbc://", creator=creator)
         # 3. Le decimos a SQLAlchemy que use esa función para conectar
         # Esto evita que SQLAlchemy intente "parsear" o modificar tu cadena
-        return create_engine("mssql+pyodbc://", creator=creator)
 
     def execute_query(self, query, params=None):
         try:
             with self.engine.connect() as conn:
                 result = conn.execute(text(query), params or {})
-                # Convertimos a diccionario para que el resto del pipeline lo entienda
                 return [dict(row._mapping) for row in result]
         except Exception as e:
             logger.error(f"Error de base de datos: {e}")

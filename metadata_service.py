@@ -38,7 +38,12 @@ class MetadataService:
             json.dump({'last_run': timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}, f)
 
     def get_incremental_documents(self):
-        """Extrae documentos nuevos o modificados y procesa seguridad híbrida."""
+        """Extrae documentos nuevos o modificados y procesa seguridad híbrida.
+
+        - parameters:
+        - returns:
+            - tuple: (lista de documentos, nueva marca temporal)
+        """
         last_run = self.get_last_checkpoint()
         start_date = last_run if last_run else "1900-01-01 00:00:00"
         
@@ -75,17 +80,15 @@ class MetadataService:
         max_modify_date = None
 
         for row in raw_rows:
-            # 1. Filtrado por MimeType
             if row['MimeType'] not in self.allowed_mimetypes:
                 continue
 
             data_id = row['DataID']
-            
-            # Seguimiento de la fecha para el checkpoint
+
             if not max_modify_date or row['ModifyDate'] > max_modify_date:
                 max_modify_date = row['ModifyDate']
 
-            # 2. Inicialización del documento en el diccionario
+            #Inicialización del documento en el diccionario
             if data_id not in documents:
                 documents[data_id] = {
                     "DataID": data_id,
@@ -97,7 +100,7 @@ class MetadataService:
                     "SecurityTokens": []
                 }
             
-            # 3. Formato Híbrido de Seguridad: "T:ID:N"
+            #Formato Híbrido de Seguridad: "T:ID:N"
             if row['RightID'] is not None:
                 type_initial = row['SubjectType'][0] # U, G, P, A o S
                 token = f"{type_initial}:{row['RightID']}:{row['AccessLevel']}"
