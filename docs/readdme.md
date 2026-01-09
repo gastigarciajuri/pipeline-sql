@@ -82,4 +82,4 @@ El código desarrollado implementa estas reglas mediante una arquitectura modula
 
 - **Carga Incremental**  
   El sistema utiliza un archivo de checkpoint (`last_run.json`) para procesar únicamente los documentos modificados desde la última ejecución exitosa, optimizando el rendimiento y los recursos del servidor.
-```
+
