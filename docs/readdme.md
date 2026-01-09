@@ -5,7 +5,6 @@
 
 El objetivo de este proyecto fue realizar una ingeniería inversa sobre un entorno de **OpenText Content Server (Livelink)** para extraer metadatos de documentos y sus permisos de seguridad. Esta información se procesa y exporta en un formato **JSON optimizado** para ser consumido por un motor de búsqueda semántica (**RAG**) con validación de seguridad por tokens.
 
----
 
 ## 2. Hallazgos del Esquema de Base de Datos
 
@@ -48,12 +47,6 @@ Uno de los puntos más valiosos de la ingeniería inversa fue el descifrado del 
 ### Estructura de Tokens Híbridos
 
 Cada documento se exporta con una lista de **SecurityTokens** bajo el formato:
-
-```
-
-T:ID:N
-
-```
 
 - **T (Tipo)**:  
   - `U` (Usuario)  
