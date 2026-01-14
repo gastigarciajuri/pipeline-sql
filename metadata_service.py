@@ -38,18 +38,14 @@ class MetadataService:
             json.dump({'last_run': timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}, f)
 
     def get_incremental_documents(self):
-        """Extrae documentos nuevos o modificados y procesa seguridad híbrida.
-
-        - parameters:
-        - returns:
-            - tuple: (lista de documentos, nueva marca temporal)
-        """
+        """Extrae documentos nuevos o modificados y procesa seguridad híbrida."""
         last_run = self.get_last_checkpoint()
         start_date = last_run if last_run else "1900-01-01 00:00:00"
         
         query = """
             SELECT 
                 d.DataID, 
+                v.Version AS VersionNumber,
                 d.Name, 
                 v.DataSize AS FileSize,
                 d.ModifyDate,
@@ -88,10 +84,11 @@ class MetadataService:
             if not max_modify_date or row['ModifyDate'] > max_modify_date:
                 max_modify_date = row['ModifyDate']
 
-            #Inicialización del documento en el diccionario
+            # Inicialización del documento en el diccionario
             if data_id not in documents:
                 documents[data_id] = {
                     "DataID": data_id,
+                    "Version": row['VersionNumber'], # <-- INCLUIDO AQUÍ
                     "Name": row['Name'],
                     "MimeType": row['MimeType'],
                     "FileSize": row['FileSize'],
@@ -100,7 +97,7 @@ class MetadataService:
                     "SecurityTokens": []
                 }
             
-            #Formato Híbrido de Seguridad: "T:ID:N"
+            # Formato Híbrido de Seguridad: "T:ID:N"
             if row['RightID'] is not None:
                 type_initial = row['SubjectType'][0] # U, G, P, A o S
                 token = f"{type_initial}:{row['RightID']}:{row['AccessLevel']}"
